@@ -206,25 +206,47 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
     setIsDownloading(true);
 
     try {
-        // Wait for libraries to load if they're not already available
-        let attempts = 0;
-        const maxAttempts = 10;
-        
-        while ((typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') && attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          attempts++;
+        // Check if libraries are available, if not load them dynamically
+        if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+          console.log('Loading PDF libraries dynamically...');
+          
+          // Load html2canvas if not available
+          if (typeof window.html2canvas === 'undefined') {
+            await new Promise((resolve, reject) => {
+              const script = document.createElement('script');
+              script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+              script.onload = resolve;
+              script.onerror = reject;
+              document.head.appendChild(script);
+            });
+          }
+          
+          // Load jsPDF if not available
+          if (typeof window.jspdf === 'undefined') {
+            await new Promise((resolve, reject) => {
+              const script = document.createElement('script');
+              script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+              script.onload = resolve;
+              script.onerror = reject;
+              document.head.appendChild(script);
+            });
+          }
         }
-        
+
+        // Wait a bit more for libraries to be fully available
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
           throw new Error('PDF generation libraries failed to load');
         }
 
         const { jsPDF } = window.jspdf;
         const canvas = await window.html2canvas(elementToCapture, {
-            scale: 2,
+            scale: 1.5,
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#ffffff',
+            logging: false,
             onclone: (document) => {
                 const clonedButton = document.getElementById('download-pdf-btn');
                 if (clonedButton) {
@@ -233,7 +255,7 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
             }
         });
 
-        const imgData = canvas.toDataURL('image/png');
+        const imgData = canvas.toDataURL('image/png', 0.8);
         const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const canvasAspectRatio = canvas.height / canvas.width;
@@ -254,7 +276,7 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
         pdf.save("dashboard-report.pdf");
     } catch (error) {
         console.error("Error generating PDF:", error);
-        alert("Sorry, an error occurred while generating the PDF. Please try refreshing the page and try again.");
+        alert("Sorry, an error occurred while generating the PDF. The libraries may not have loaded properly. Please try refreshing the page and try again.");
     } finally {
         setIsDownloading(false);
     }
