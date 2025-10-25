@@ -22,7 +22,7 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isDownloading, setIsDownloading] = useState(false);
-  const [activeTab, setActiveTab] = useState('ticketTriageDashboard');
+  const [activeTab, setActiveTab] = useState('raptorDashboard');
 
   // Default stats
   const defaultStats = {
