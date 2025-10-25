@@ -282,14 +282,6 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
                 {isAdmin && (
                   <TabButton tabName="data" label="Data Input" Icon={Edit} />
                 )}
-                {!isAdmin && (
-                  <TabButton 
-                    tabName="admin" 
-                    label="Admin" 
-                    Icon={Edit} 
-                    onClick={() => navigate('/admin')} 
-                  />
-                )}
             </nav>
         </div>
         
