@@ -47,24 +47,28 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
     triageReshoots: '2.2',
   };
 
-  const [stats, setStats] = useState(defaultStats);
-
-  // Load saved data from localStorage on component mount
-  useEffect(() => {
+  // Initialize state with saved data or defaults
+  const [stats, setStats] = useState(() => {
     const savedStats = localStorage.getItem('dashboard-stats');
     if (savedStats) {
       try {
         const parsedStats = JSON.parse(savedStats);
-        setStats(parsedStats);
+        return parsedStats;
       } catch (error) {
         console.error('Error parsing saved stats:', error);
+        return defaultStats;
       }
     }
-  }, []);
+    return defaultStats;
+  });
 
-  // Save data to localStorage whenever stats change
+  // Save data to localStorage whenever stats change (but not on initial load)
   useEffect(() => {
-    localStorage.setItem('dashboard-stats', JSON.stringify(stats));
+    // Only save if we're not in the initial render
+    const isInitialLoad = localStorage.getItem('dashboard-stats') === null;
+    if (!isInitialLoad) {
+      localStorage.setItem('dashboard-stats', JSON.stringify(stats));
+    }
   }, [stats]);
 
   // Set active tab to 'data' when in admin mode
@@ -111,10 +115,13 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
 
   const handleStatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setStats(prevStats => ({
-      ...prevStats,
+    const newStats = {
+      ...stats,
       [name]: value,
-    }));
+    };
+    setStats(newStats);
+    // Save immediately to localStorage
+    localStorage.setItem('dashboard-stats', JSON.stringify(newStats));
   };
 
   // --- Derived State: Parse string stats into numbers for calculations ---
