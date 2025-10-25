@@ -1,0 +1,5 @@
+{
+  "name": "Product & Gallery Dashboard",
+  "description": "A dashboard to visualize product and gallery statistics with various charts and metrics, and an option to download the report as a PDF.",
+  "requestFramePermissions": []
+}
