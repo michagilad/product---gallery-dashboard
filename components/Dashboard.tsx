@@ -203,19 +203,28 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
         return;
     }
     
-    if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-      console.error('PDF generation libraries not loaded.');
-      alert('Sorry, the PDF download feature is currently unavailable. Please try refreshing the page.');
-      return;
-    }
-
     setIsDownloading(true);
 
     try {
+        // Wait for libraries to load if they're not already available
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        while ((typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+        
+        if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+          throw new Error('PDF generation libraries failed to load');
+        }
+
         const { jsPDF } = window.jspdf;
         const canvas = await window.html2canvas(elementToCapture, {
             scale: 2,
             useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
             onclone: (document) => {
                 const clonedButton = document.getElementById('download-pdf-btn');
                 if (clonedButton) {
@@ -245,7 +254,7 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
         pdf.save("dashboard-report.pdf");
     } catch (error) {
         console.error("Error generating PDF:", error);
-        alert("Sorry, an error occurred while generating the PDF.");
+        alert("Sorry, an error occurred while generating the PDF. Please try refreshing the page and try again.");
     } finally {
         setIsDownloading(false);
     }
