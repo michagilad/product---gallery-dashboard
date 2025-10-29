@@ -47,29 +47,102 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
     triageReshoots: '2.2',
   };
 
-  // Initialize state with saved data or defaults
-  const [stats, setStats] = useState(() => {
-    const savedStats = localStorage.getItem('dashboard-stats');
-    if (savedStats) {
-      try {
-        const parsedStats = JSON.parse(savedStats);
-        return parsedStats;
-      } catch (error) {
-        console.error('Error parsing saved stats:', error);
-        return defaultStats;
-      }
-    }
-    return defaultStats;
-  });
+  // Initialize state with defaults (will be updated from API)
+  const [stats, setStats] = useState(defaultStats);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Save data to localStorage whenever stats change (but not on initial load)
+  // Fetch stats from API on component mount
   useEffect(() => {
-    // Only save if we're not in the initial render
-    const isInitialLoad = localStorage.getItem('dashboard-stats') === null;
-    if (!isInitialLoad) {
-      localStorage.setItem('dashboard-stats', JSON.stringify(stats));
-    }
-  }, [stats]);
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true);
+        // Try to fetch from API first
+        try {
+          const response = await fetch('/.netlify/functions/get-stats');
+          if (response.ok) {
+            const apiStats = await response.json();
+            setStats(apiStats);
+            // Cache in localStorage as backup
+            localStorage.setItem('dashboard-stats', JSON.stringify(apiStats));
+            setIsLoading(false);
+            return;
+          }
+        } catch (apiError) {
+          console.log('API not available, trying public file...', apiError);
+        }
+        
+        // Fallback: Try to fetch from public JSON file
+        try {
+          const response = await fetch('/data/stats.json');
+          if (response.ok) {
+            const fileStats = await response.json();
+            setStats(fileStats);
+            localStorage.setItem('dashboard-stats', JSON.stringify(fileStats));
+            setIsLoading(false);
+            return;
+          }
+        } catch (fileError) {
+          console.log('Public file not available, trying localStorage...', fileError);
+        }
+        
+        // Final fallback: localStorage
+        const savedStats = localStorage.getItem('dashboard-stats');
+        if (savedStats) {
+          try {
+            const parsedStats = JSON.parse(savedStats);
+            setStats(parsedStats);
+          } catch (error) {
+            console.error('Error parsing saved stats:', error);
+            // Keep defaultStats
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        // Try localStorage as last resort
+        const savedStats = localStorage.getItem('dashboard-stats');
+        if (savedStats) {
+          try {
+            const parsedStats = JSON.parse(savedStats);
+            setStats(parsedStats);
+          } catch (parseError) {
+            console.error('Error parsing saved stats:', parseError);
+            // Keep defaultStats
+          }
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Save data to API and localStorage whenever stats change (but not on initial load)
+  useEffect(() => {
+    // Skip saving on initial load
+    if (isLoading) return;
+
+    // Save to localStorage immediately as cache
+    localStorage.setItem('dashboard-stats', JSON.stringify(stats));
+
+    // Save to API (fire and forget - don't block UI)
+    const saveToAPI = async () => {
+      try {
+        await fetch('/.netlify/functions/save-stats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(stats),
+        });
+      } catch (error) {
+        console.error('Error saving stats to API:', error);
+        // Error is logged but doesn't block the UI
+      }
+    };
+
+    saveToAPI();
+  }, [stats, isLoading]);
 
   // Set active tab to 'data' when in admin mode
   useEffect(() => {
@@ -120,8 +193,7 @@ export default function Dashboard({ isAdmin = false }: DashboardProps) {
       [name]: value,
     };
     setStats(newStats);
-    // Save immediately to localStorage
-    localStorage.setItem('dashboard-stats', JSON.stringify(newStats));
+    // The useEffect hook will handle saving to both localStorage and API
   };
 
   // --- Derived State: Parse string stats into numbers for calculations ---

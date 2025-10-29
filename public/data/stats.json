@@ -1,0 +1,22 @@
+{
+  "totalExperiences": "58851",
+  "totalProducts": "28475",
+  "totalGalleries": "26079",
+  "raptorDelivered": "21170",
+  "inProgress": "1538",
+  "failed": "636",
+  "readyForAutopost": "104",
+  "weeklyGoal": "5979",
+  "weeklyAvailable": "4922",
+  "weeklyRaptor": "2853",
+  "weeklyNonRaptor": "2070",
+  "qcReviewed": "4229",
+  "qcApproved": "1554",
+  "qcRejected": "2675",
+  "triageReviewed": "1600",
+  "triageNoPost": "18.6",
+  "triagePlatformPost": "67.7",
+  "triageStuck": "11.5",
+  "triageReshoots": "2.2"
+}
+
